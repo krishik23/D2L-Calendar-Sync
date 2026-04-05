@@ -2,9 +2,20 @@
 Converts raw D2L data into Google Calendar events.
 No announcement parsing — only structured API data (assignments, quizzes, calendar events).
 """
+import re
 import hashlib
 import dateparser
 from datetime import datetime, timedelta, timezone
+
+
+def _sanitize(text: str, max_length: int = 500) -> str:
+    """Strip HTML tags and cap length before passing to Google Calendar."""
+    if not text:
+        return ""
+    cleaned = re.sub(r"<[^>]+>", "", text).strip()
+    if len(cleaned) > max_length:
+        cleaned = cleaned[:max_length] + "..."
+    return cleaned
 
 
 DATEPARSER_SETTINGS = {
@@ -33,14 +44,14 @@ def _stable_key(item: dict) -> str:
     dt = _parse_date(item.get("date_str", ""))
     date_part = dt.strftime("%Y-%m-%d") if dt else item.get("date_str", "")[:10]
     raw = f"{source}|{item.get('title', '')}|{date_part}|{item.get('course', '')}"
-    return hashlib.md5(raw.encode()).hexdigest()
+    return hashlib.sha256(raw.encode()).hexdigest()
 
 
 def _build_gcal_event(item: dict, dt: datetime) -> dict:
     """Build a Google Calendar API event body from a D2L item."""
-    title  = item["title"].strip()
-    course = item.get("course", "").strip()
-    desc   = item.get("description", "").strip()
+    title  = _sanitize(item["title"], max_length=200)
+    course = _sanitize(item.get("course", ""), max_length=100)
+    desc   = _sanitize(item.get("description", ""), max_length=2000)
     summary = f"{title} — {course}" if course and course not in title else title
 
     # Check raw date string for a time component rather than guessing from midnight

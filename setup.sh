@@ -26,19 +26,15 @@ pip install -r requirements.txt -q
 playwright install chromium
 echo "✓ Python dependencies installed."
 
-# ── 2. .env file ──────────────────────────────────────────────────
+# ── 2. Store credentials in macOS Keychain ────────────────────────
 echo ""
-echo "Step 2: Setting up your credentials..."
-
-if [ ! -f "$SCRIPT_DIR/.env" ]; then
-    cp "$SCRIPT_DIR/.env.example" "$SCRIPT_DIR/.env"
-    echo ""
-    echo "  → A .env file was created. Please fill in your details:"
-    echo "     open '$SCRIPT_DIR/.env'"
-    echo ""
-    read -p "  Press Enter after you've filled in .env to continue..."
-else
-    echo "✓ .env file already exists."
+echo "Step 2: Setting up your credentials (stored in macOS Keychain)..."
+echo ""
+source .venv/bin/activate
+python3 migrate_credentials.py
+if [ $? -ne 0 ]; then
+    echo "  ✗ Credential setup failed. Aborting."
+    exit 1
 fi
 
 # ── 3. Google credentials check ───────────────────────────────────
@@ -72,12 +68,18 @@ fi
 
 # ── 4. First run (triggers Google OAuth in browser) ───────────────
 echo ""
-echo "Step 4: Running first sync (will open browser for Google login)..."
+echo "Step 4: First sync (will open browser for Google login)..."
 echo "  A browser window will open asking you to sign in to Google."
 echo "  This only happens ONCE. After this it runs silently."
 echo ""
-source .venv/bin/activate
-python3 main.py
+read -p "  Run the first sync now? (Y/n): " CONFIRM
+CONFIRM="${CONFIRM:-Y}"
+if [[ "$CONFIRM" =~ ^[Yy]$ ]]; then
+    source .venv/bin/activate
+    python3 main.py
+else
+    echo "  Skipped. Run manually whenever you're ready: python3 main.py"
+fi
 
 # ── 5. Schedule nightly cron via launchd ──────────────────────────
 echo ""

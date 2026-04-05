@@ -1,6 +1,10 @@
 """
 Tracks which events have already been added to Google Calendar
 so we never create duplicates.
+
+Security note: This database stores only deduplication keys (D2L entity IDs
+and Google Calendar event IDs). No credentials, personal data, or event
+content is persisted here — encryption is not warranted.
 """
 import sqlite3
 from src.config import DB_PATH

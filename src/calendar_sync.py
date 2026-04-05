@@ -5,6 +5,7 @@ Subsequent runs: uses the saved token automatically.
 """
 import os
 import stat
+import time
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -20,7 +21,13 @@ def _get_service():
     creds = None
 
     if os.path.exists(GOOGLE_TOKEN_FILE):
-        creds = Credentials.from_authorized_user_file(GOOGLE_TOKEN_FILE, GOOGLE_SCOPES)
+        # Rotate the token if it's older than 90 days — forces fresh OAuth.
+        token_age_days = (time.time() - os.path.getmtime(GOOGLE_TOKEN_FILE)) / 86400
+        if token_age_days > 90:
+            print("[calendar] Token is >90 days old — forcing re-authentication.")
+            os.remove(GOOGLE_TOKEN_FILE)
+        else:
+            creds = Credentials.from_authorized_user_file(GOOGLE_TOKEN_FILE, GOOGLE_SCOPES)
 
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:

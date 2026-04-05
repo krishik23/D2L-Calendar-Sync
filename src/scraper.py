@@ -8,11 +8,13 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse
 from playwright.async_api import async_playwright, TimeoutError as PWTimeout
-from src.config import D2L_USERNAME, D2L_PASSWORD, D2L_BASE_URL
+from src.config import D2L_USERNAME, D2L_PASSWORD, D2L_BASE_URL, D2L_ORG_ID
 
-API_VER_LP    = "1.7"
-API_VER_LE    = "1.7"
-GLOBAL_ORG_ID = "8340"  # PDSB root org unit
+# Security note: Playwright relies on the system certificate store for TLS
+# validation. All D2L calls use HTTPS. Certificate pinning is not supported
+# by Playwright — ensure you run this on a trusted network.
+API_VER_LP = "1.7"
+API_VER_LE = "1.7"
 
 _D2L_HOST = urlparse(D2L_BASE_URL).netloc  # e.g. "pdsb.elearningontario.ca"
 
@@ -97,7 +99,7 @@ async def _login(page):
 
     raise RuntimeError(
         "[scraper] Could not complete login. "
-        "Check your D2L_USERNAME and D2L_PASSWORD in .env"
+        "Check your credentials: python3 migrate_credentials.py"
     )
 
 
@@ -190,7 +192,7 @@ async def _get_calendar_events(page, courses: list[dict]) -> list[dict]:
     # 1. Try global org calendar
     data = await _api_get(
         page,
-        f"/d2l/api/le/{API_VER_LE}/{GLOBAL_ORG_ID}/calendar/events/upcoming/"
+        f"/d2l/api/le/{API_VER_LE}/{D2L_ORG_ID}/calendar/events/upcoming/"
         f"?startDateTime={start_str}&endDateTime={end_str}"
     )
     if data:
