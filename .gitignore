@@ -1,0 +1,11 @@
+.env
+credentials/token.json
+credentials/credentials.json
+*.db
+.last_run
+__pycache__/
+.DS_Store
+sync.log
+debug.py
+debug_html.py
+.venv/
